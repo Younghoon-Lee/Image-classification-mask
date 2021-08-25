@@ -1,0 +1,10 @@
+{
+    "config": {
+        "data_dir": "/opt/ml/input/data",
+        "eval_dir_name": "eval",
+        "train_dir_name": "train",
+        "n_epochs": 10,
+        "batch_size": 64,
+        "learning_rate": 0.001
+    }
+}
