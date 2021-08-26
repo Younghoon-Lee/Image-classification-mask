@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torchvision
 
-class MaskClassifierModel(nn.Module):
+class MyModel(nn.Module):
     def __init__(self, num_classes: int = 1000):
         super().__init__()
         self.features = nn.Sequential(

@@ -1,73 +1,45 @@
 import os
-
-import torch
-from torch import nn, optim
-
-import torchvision
-import torchvision.transforms as T
-
-from sklearn import model_selection
 import pandas as pd
+import torch
+import torch.optim as optim
+import torch.nn as nn
+import torchvision
+import numpy as np
+from PIL import Image
+from torch.utils.data.dataloader import DataLoader
+from torchvision import transforms
+from torchvision.transforms import Resize, ToTensor, Normalize
+from torchvision.transforms.transforms import ColorJitter, RandomHorizontalFlip, RandomRotation
 from tqdm import tqdm
 
-import config_parser
-import data_utils
-import models
-import logger
+from dataset import MyDataset
+from models import MyModel
 
-config = config_parser.ConfigParser(description='mask classification learner')
-device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
+def train(model, num_epoch, optimizer, loss_fn, train_loader, device=torch.device('cuda')):
+    model.train()
+    for epoch in range(num_epoch):
 
-train_root_dir = os.path.join(config.data_dir, config.train_dir_name)
-train_meta_data = pd.read_csv(os.path.join(train_root_dir, 'train.csv')).drop(columns=['id', 'race']).to_numpy()
+        running_loss = 0.
+        running_acc = 0.
 
-img_paths, labels = data_utils.get_paths_and_labels(
-    root_dir=train_root_dir,
-    meta_data=train_meta_data
-)
-train_img_paths, val_img_paths, train_labels, val_labels = model_selection.train_test_split(
-    img_paths, labels, 
-    test_size=0.2,
-    shuffle=True, 
-    stratify=labels
-)
+        for idx , (images, labels) in enumerate(tqdm(train_loader)):
+            images = images.to(device)
+            labels = labels.to(device)
 
-transform = T.Compose([
-    T.Resize((512, 384), T.InterpolationMode.BICUBIC),
-    T.ToTensor(),
-])
-train_dataset = data_utils.MaskClassifierDataset(
-    img_paths=train_img_paths,
-    labels=train_labels,
-    transform=transform
-)
-val_dataset = data_utils.MaskClassifierDataset(
-    img_paths=val_img_paths,
-    labels=val_labels
-)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=2, drop_last=True)
-val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=2, drop_last=False)
+            optimizer.zero_grad()
+            logits = model(images)
+            _, preds = torch.max(logits, 1)
+            loss = loss_fn(logits, labels)
 
-model = models.MaskClassifierModel(num_classes=18).to(device)
-criterion = nn.MultiLabelSoftMarginLoss().to(device)
-optimizer = optim.Adam(params=model.parameters(), lr=config.learning_rate)
+            loss.backward()
+            optimizer.step()
 
-for epoch in range(1, config.n_epochs + 1):
-    running_loss = 0
-    n_corrects = 0
-    for imgs, labels in tqdm(train_loader):
-        imgs = imgs.to(device)
-        labels = labels.to(device)
-
-        predictions = model(imgs)
-        labels_one_hot = torch.zeros_like(predictions).scatter_(1, labels, 1)
-        loss = criterion(predictions, labels_one_hot)
-
-        running_loss += loss.item()
-        n_correct = (predictions.argmax(dim=1).unsqueeze(dim=1) == labels).float().sum(dim=0).item()
+            running_loss += loss.item() * images.size(0)
+            running_acc += torch.sum(preds == labels.data)
         
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        epoch_loss = running_loss / len(train_loader.dataset)
+        epoch_acc = running_acc / len(train_loader.dataset)
 
-    print(f'epoch: {epoch:02d}/{config.n_epochs}\tcorrect: {(n_correct / config.batch_size) * 100:0.2f}%\tloss: {running_loss / config.batch_size:0.3f}')
+        print(f"현재 epoch-{epoch}의 train-데이터 셋에서 평균 Loss : {epoch_loss:.3f}, 평균 Accuracy : {epoch_acc:.3f}")
+    
+    return model
