@@ -6,9 +6,9 @@ from torchvision import transforms
 
 from dataset import TestDataset
 
-def inference(model, test_loader, test_dir,  device):
+def inference(model, test_loader, test_dir,submission, device):
     model.eval()
-    submission = pd.read_csv(os.path.join(test_dir,'info.csv'))
+    
     all_predictions =[]
     for images in test_loader:
         with torch.no_grad():

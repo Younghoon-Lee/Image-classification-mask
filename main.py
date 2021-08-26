@@ -23,7 +23,10 @@ def main():
     TRAIN_DATA_PATH = 'train'
     TEST_DATA_PATH = 'eval'
     LEARNING_RATE = 0.0001
-    NUM_EPOCH = 5
+    NUM_EPOCH = 4
+
+    test_image_path = os.path.join(TEST_DATA_PATH,'images')
+    submission = pd.read_csv(os.path.join(TEST_DATA_PATH,'info.csv'))
     device = torch.device('cuda')
 
     transform = transforms.Compose([
@@ -37,7 +40,7 @@ def main():
     train_loader = DataLoader(
         dataset,
         shuffle=True,
-        batch_size= 64,
+        batch_size= 12,
         num_workers=2
     )
 
@@ -54,8 +57,8 @@ def main():
     trained_model = train(
         resnet18, NUM_EPOCH, optimizer, loss_fn, train_loader, device
     )
-
-    testDataset = TestDataset(os.path.join(TEST_DATA_PATH, 'images'), transform)
+    image_paths = [os.path.join(test_image_path, img_id) for img_id in submission.ImageID]
+    testDataset = TestDataset(image_paths, transform)
 
     test_loader = DataLoader(
         testDataset,
@@ -63,4 +66,7 @@ def main():
     )
 
 
-    inference(trained_model, test_loader, TEST_DATA_PATH, device)
+    inference(trained_model, test_loader, TEST_DATA_PATH,submission, device)
+
+if __name__ =="__main__":
+    main()
