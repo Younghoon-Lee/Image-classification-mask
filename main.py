@@ -49,6 +49,8 @@ def main():
     nn.init.xavier_uniform_(resnet18.fc.weight)
     stdv = 1/np.sqrt(512)
     resnet18.fc.bias.data.uniform_(-stdv,stdv)
+    resnet18.layer1.requires_grad_ = False
+    resnet18.layer2.requires_grad_ = False
     resnet18.to(device)
 
     loss_fn = nn.CrossEntropyLoss()
