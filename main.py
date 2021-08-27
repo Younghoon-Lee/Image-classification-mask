@@ -12,6 +12,7 @@ from torchvision import transforms
 from torchvision.transforms import Resize, ToTensor, Normalize
 from torchvision.transforms.transforms import ColorJitter, RandomHorizontalFlip, RandomRotation
 from tqdm import tqdm
+from configparser import ConfigParser
 
 from dataset import MyDataset, TestDataset
 from models import MyModel
@@ -20,10 +21,14 @@ from inference import inference
 
 def main():
 
-    TRAIN_DATA_PATH = 'train'
-    TEST_DATA_PATH = 'eval'
-    LEARNING_RATE = 0.0001
-    NUM_EPOCH = 4
+    parser = ConfigParser()
+    parser.read('config.ini')
+
+    TRAIN_DATA_PATH = parser.get('path','train')
+    TEST_DATA_PATH = parser.get('path','test')
+    LEARNING_RATE = parser.getfloat('hyper_params','LR')
+    NUM_EPOCH = parser.getint('hyper_params','EPOCH')
+    BATCH_SIZE = parser.getint('hyper_params','batchsize')
 
     test_image_path = os.path.join(TEST_DATA_PATH,'images')
     submission = pd.read_csv(os.path.join(TEST_DATA_PATH,'info.csv'))
@@ -40,7 +45,7 @@ def main():
     train_loader = DataLoader(
         dataset,
         shuffle=True,
-        batch_size= 12,
+        batch_size= BATCH_SIZE,
         num_workers=2
     )
 
