@@ -13,6 +13,8 @@ from torchvision.transforms import Resize, ToTensor, Normalize
 from torchvision.transforms.transforms import ColorJitter, RandomHorizontalFlip, RandomRotation
 from tqdm import tqdm
 from configparser import ConfigParser
+from functools import partial
+import argparse
 
 from dataset import MyDataset, TestDataset
 from models import MyModel
@@ -20,6 +22,9 @@ from train import train
 from inference import inference
 
 def main():
+    torch.manual_seed(42)
+    torch.cuda.manual_seed(42)
+    
 
     parser = ConfigParser()
     parser.read('config.ini')
@@ -54,8 +59,12 @@ def main():
     nn.init.xavier_uniform_(resnet18.fc.weight)
     stdv = 1/np.sqrt(512)
     resnet18.fc.bias.data.uniform_(-stdv,stdv)
-    resnet18.layer1.requires_grad_ = False
-    resnet18.layer2.requires_grad_ = False
+    # resnet18.layer1.requires_grad_(False)
+    # resnet18.layer2.requires_grad_(False)
+    # resnet18.layer3.requires_grad_(False)
+    # resnet18.layer4.requires_grad_(False)
+    for p in resnet18.parameters():
+        print(p.requires_grad)
     resnet18.to(device)
 
     loss_fn = nn.CrossEntropyLoss()
@@ -76,4 +85,9 @@ def main():
     inference(trained_model, test_loader, TEST_DATA_PATH,submission, device)
 
 if __name__ =="__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--freeze', nargs='+', default=[])
+    args = parser.parse_args()
+    # print(args.freeze)
+    # print(type(args.freeze))
     main()
